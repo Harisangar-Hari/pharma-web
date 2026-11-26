@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { OrderStatusBadge } from "@/components/account/order-status-badge";
 
-export const instant = false;
+
 
 export const metadata = { title: "My Orders" };
 

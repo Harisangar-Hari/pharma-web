@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { CheckoutClient } from "@/components/checkout/checkout-client";
 
-export const instant = false;
+
 
 export const metadata = { title: "Checkout" };
 

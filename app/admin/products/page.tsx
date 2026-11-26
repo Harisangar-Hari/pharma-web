@@ -3,7 +3,7 @@ import { requireAdmin } from "@/lib/auth-admin";
 import { prisma } from "@/lib/prisma";
 import { ProductRowActions } from "@/components/admin/product-row-actions";
 
-export const instant = false;
+
 
 export default async function AdminProductsPage({
   searchParams,

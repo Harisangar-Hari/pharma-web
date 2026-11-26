@@ -37,8 +37,7 @@ export async function destroySession() {
 }
 
 export async function getSession(): Promise<SessionUser | null> {
-  "use cache: private";
-  cacheLife({ stale: 60 });
+
 
   const store = await cookies();
   const token = store.get(COOKIE_NAME)?.value;

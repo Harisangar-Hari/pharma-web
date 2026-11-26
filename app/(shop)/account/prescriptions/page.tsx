@@ -10,7 +10,7 @@ const STATUS_STYLES: Record<string, string> = {
   APPROVED: "bg-green-100 text-green-700",
   REJECTED: "bg-red-100 text-red-700",
 };
-export const instant = false;
+
 export default async function PrescriptionsPage() {
   const user = await getCurrentUser();
   if (!user) return null;

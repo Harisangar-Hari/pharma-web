@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { AddressList } from "@/components/account/address-list";
 
 export const metadata = { title: "My Addresses" };
-export const instant = false;
+
 export default async function AddressesPage() {
   const user = await getCurrentUser();
   if (!user) return null;

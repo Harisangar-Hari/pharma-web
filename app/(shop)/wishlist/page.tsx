@@ -7,7 +7,7 @@ import { serializeProduct } from "@/lib/serialize";
 import { Button } from "@/components/ui/button";
 
 export const metadata = { title: "Wishlist" };
-export const instant = false;
+
 export default async function WishlistPage() {
   const user = await getCurrentUser();
   if (!user) {

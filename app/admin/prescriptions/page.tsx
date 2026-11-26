@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireStaff } from "@/lib/auth-admin";
 import { prisma } from "@/lib/prisma";
 import { PrescriptionReviewCard } from "@/components/admin/prescription-review-card";
-export const instant = false;
+
 export default async function AdminPrescriptionsPage({
   searchParams,
 }: {
@@ -33,11 +33,10 @@ export default async function AdminPrescriptionsPage({
           <Link
             key={t}
             href={`/admin/prescriptions?status=${t}`}
-            className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium ${
-              status === t
+            className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium ${status === t
                 ? "border-[color:var(--color-primary)] text-[color:var(--color-primary)]"
                 : "border-transparent text-[color:var(--color-muted)] hover:text-[color:var(--color-foreground)]"
-            }`}
+              }`}
           >
             {t}
           </Link>

@@ -6,7 +6,7 @@ import { getFilterOptions, getShopProducts } from "@/lib/shop";
 import { parseShopParams } from "@/lib/shop-params";
 import { getSavedProductIds } from "@/lib/wishlist";
 
-export const instant = false;
+
 
 export const metadata = {
   title: "Shop All Products",

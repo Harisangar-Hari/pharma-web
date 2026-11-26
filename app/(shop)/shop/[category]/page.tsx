@@ -9,7 +9,7 @@ import { getSavedProductIds } from "@/lib/wishlist";
 import { prisma } from "@/lib/prisma";
 import { Metadata } from "next";
 
-export const instant = false;
+
 export async function generateMetadata({
   params,
 }: {

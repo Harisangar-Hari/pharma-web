@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth-admin";
 import { prisma } from "@/lib/prisma";
 import { ProductForm } from "@/components/admin/product-form";
-export const instant = false;
+
 export default async function EditProductPage({
   params,
 }: {

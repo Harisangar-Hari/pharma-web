@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { AccountSidebar } from "@/components/account/sidebar";
 
-export const instant = false;
+
 
 export default async function AccountLayout({
   children,

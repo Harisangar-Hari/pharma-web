@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireStaff } from "@/lib/auth-admin";
 import { prisma } from "@/lib/prisma";
 import { OrderStatusBadge } from "@/components/account/order-status-badge";
-export const instant = false;
+
 const STATUSES = [
   "ALL",
   "PENDING",

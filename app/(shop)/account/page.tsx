@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const metadata = { title: "My Account" };
-export const instant = false;
+
 export default async function AccountPage() {
   const user = await getCurrentUser();
   if (!user) return null;

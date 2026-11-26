@@ -2,7 +2,7 @@ import Link from "next/link";
 import { FileText, ShoppingBag, Package, AlertTriangle } from "lucide-react";
 import { requireStaff } from "@/lib/auth-admin";
 import { prisma } from "@/lib/prisma";
-export const instant = false;
+
 export default async function AdminDashboard() {
   await requireStaff();
 

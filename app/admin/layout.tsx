@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 
 export const metadata = { title: "Admin — PharmaCare" };
-export const instant = false;
+
 export default async function AdminLayout({
   children,
 }: {

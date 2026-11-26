@@ -4,7 +4,7 @@ import { requireStaff } from "@/lib/auth-admin";
 import { prisma } from "@/lib/prisma";
 import { OrderStatusBadge } from "@/components/account/order-status-badge";
 import { OrderStatusControl } from "@/components/admin/order-status-control";
-export const instant = false;
+
 export default async function AdminOrderDetailPage({
   params,
 }: {

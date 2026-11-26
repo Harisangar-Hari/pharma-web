@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { OrderStatusBadge } from "@/components/account/order-status-badge";
 import { ChevronRight } from "lucide-react";
 
-export const instant = false;
+
 
 export default async function OrderDetailPage({
   params,
