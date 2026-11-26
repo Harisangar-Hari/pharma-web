@@ -11,6 +11,7 @@ import {
 } from "@/lib/products";
 import { getSavedProductIds } from "@/lib/wishlist";
 import { OrganizationJsonLd } from "@/components/seo/organization-json-ld";
+import { connection } from "next/server";
 
 function SectionSkeleton() {
   return (
@@ -31,7 +32,7 @@ function SectionSkeleton() {
 export default function HomePage() {
   return (
     <>
-     <OrganizationJsonLd />
+      <OrganizationJsonLd />
       <Hero />
       <Suspense fallback={<SectionSkeleton />}>
         <CategoriesSection />
@@ -51,11 +52,13 @@ export default function HomePage() {
 }
 
 async function CategoriesSection() {
+  await connection();
   const categories = await getCategories();
   return <CategoryGrid categories={categories} />;
 }
 
 async function NewArrivalsSection() {
+  await connection();
   const [products, savedIds] = await Promise.all([
     getNewArrivals(8),
     getSavedProductIds(),
@@ -72,6 +75,7 @@ async function NewArrivalsSection() {
 }
 
 async function BestSellingSection() {
+  await connection();
   const [products, savedIds] = await Promise.all([
     getBestSelling(8),
     getSavedProductIds(),
@@ -88,6 +92,7 @@ async function BestSellingSection() {
 }
 
 async function TopRatedSection() {
+  await connection();
   const [products, savedIds] = await Promise.all([
     getTopRated(8),
     getSavedProductIds(),

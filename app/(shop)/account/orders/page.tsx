@@ -22,7 +22,7 @@ export default async function OrdersPage() {
   if (orders.length === 0) {
     return (
       <div className="rounded-lg border border-[color:var(--color-border)] p-8 text-center">
-        <p className="text-[color:var(--color-muted)]">You haven't placed any orders yet.</p>
+        <p className="text-[color:var(--color-muted)]">You haven&apos;t placed any orders yet.</p>
         <Link
           href="/shop"
           className="mt-3 inline-block text-sm font-medium text-[color:var(--color-primary)] hover:underline"

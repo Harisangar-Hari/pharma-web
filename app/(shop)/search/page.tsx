@@ -5,6 +5,7 @@ import { searchProducts } from "@/lib/search";
 import { getSavedProductIds } from "@/lib/wishlist";
 
 export const metadata = { title: "Search" };
+export const instant = false;
 
 export default async function SearchPage({
     searchParams,

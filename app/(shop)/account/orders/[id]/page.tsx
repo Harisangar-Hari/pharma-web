@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { OrderStatusBadge } from "@/components/account/order-status-badge";
 import { ChevronRight } from "lucide-react";
 
+export const instant = false;
+
 export default async function OrderDetailPage({
   params,
 }: {
@@ -47,8 +49,8 @@ export default async function OrderDetailPage({
 
       {order.status === "PENDING_APPROVAL" && (
         <p className="rounded-md bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
-          Our pharmacist is reviewing your prescription. You'll be notified once
-          it's approved.
+          Our pharmacist is reviewing your prescription. You&apos;ll be notified once
+          it&apos;s approved.
         </p>
       )}
 

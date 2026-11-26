@@ -5,6 +5,8 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 
+export const instant = false;
+
 export default async function ConfirmationPage({
   params,
 }: {
