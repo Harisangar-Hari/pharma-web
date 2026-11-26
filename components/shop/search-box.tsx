@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { suggestProducts } from "@/lib/actions/search";
@@ -30,20 +31,33 @@ export function SearchBox({
   const boxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (q.trim().length < 2) {
-      setSuggestions([]);
-      return;
-    }
     let cancelled = false;
+    const term = q.trim();
+
     const t = setTimeout(async () => {
+      if (term.length < 2) {
+        setSuggestions([]);
+        setOpen(false);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
-      const results = await suggestProducts(q);
-      if (!cancelled) {
+      try {
+        const results = await suggestProducts(term);
+        if (cancelled) return;
         setSuggestions(results);
         setOpen(results.length > 0);
-        setLoading(false);
+      } catch {
+        if (!cancelled) {
+          setSuggestions([]);
+          setOpen(false);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }, 250);
+
     return () => {
       cancelled = true;
       clearTimeout(t);
@@ -96,14 +110,18 @@ export function SearchBox({
               onClick={() => setOpen(false)}
               className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-[color:var(--color-surface)]"
             >
-              <img
+              <Image
                 src={s.images[0] || "/placeholder.svg"}
                 alt=""
+                width={40}
+                height={40}
                 className="h-10 w-10 rounded object-cover"
               />
               <div className="min-w-0 flex-1">
                 <p className="truncate">{s.name}</p>
-                <p className="text-xs text-[color:var(--color-muted)]">(Rs){s.price.toFixed(0)}</p>
+                <p className="text-xs text-[color:var(--color-muted)]">
+                  (Rs){s.price.toFixed(0)}
+                </p>
               </div>
             </Link>
           ))}

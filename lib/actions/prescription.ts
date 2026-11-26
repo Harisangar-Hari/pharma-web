@@ -1,13 +1,22 @@
 "use server";
 
-import { writeFile, mkdir } from "fs/promises";
+import { writeFile, mkdir, rm } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
-const ALLOWED = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+const ALLOWED: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "application/pdf": "pdf",
+};
+
+// Prescriptions are private: stored outside /public and served through an
+// authenticated route handler that checks ownership or staff role.
+const UPLOAD_DIR = path.join(process.cwd(), "private", "uploads", "prescriptions");
 
 export async function uploadPrescriptionAction(
   formData: FormData
@@ -22,24 +31,32 @@ export async function uploadPrescriptionAction(
   if (file.size > MAX_BYTES) {
     return { success: false, error: "File must be under 5 MB" };
   }
-  if (!ALLOWED.includes(file.type)) {
+
+  const ext = ALLOWED[file.type];
+  if (!ext) {
     return { success: false, error: "Only JPG, PNG, WEBP, or PDF allowed" };
   }
 
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
-  const filename = `${randomUUID()}.${ext}`;
-  const uploadDir = path.join(process.cwd(), "public", "uploads", "prescriptions");
-  await mkdir(uploadDir, { recursive: true });
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(uploadDir, filename), buffer);
+  const id = randomUUID();
+  const filePath = path.join(UPLOAD_DIR, `${id}.${ext}`);
 
-  const rx = await prisma.prescription.create({
-    data: {
-      userId: session.id,
-      fileUrl: `/uploads/prescriptions/${filename}`,
-      status: "PENDING",
-    },
-  });
+  try {
+    await mkdir(UPLOAD_DIR, { recursive: true });
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await writeFile(filePath, buffer);
 
-  return { success: true, prescriptionId: rx.id };
+    await prisma.prescription.create({
+      data: {
+        id,
+        userId: session.id,
+        fileUrl: `/api/prescriptions/${id}`,
+        status: "PENDING",
+      },
+    });
+  } catch {
+    await rm(filePath, { force: true }).catch(() => {});
+    return { success: false, error: "Could not save the prescription. Please try again." };
+  }
+
+  return { success: true, prescriptionId: id };
 }

@@ -1,18 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { serializeProduct } from "@/lib/serialize";
-
-const cardSelect = {
-  id: true,
-  name: true,
-  slug: true,
-  price: true,
-  mrp: true,
-  images: true,
-  stock: true,
-  requiresPrescription: true,
-  avgRating: true,
-  reviewCount: true,
-} as const;
+import { CARD_SELECT } from "@/lib/product-select";
 
 export async function searchProducts(q: string, limit = 40) {
   const term = q.trim();
@@ -35,7 +23,7 @@ export async function searchProducts(q: string, limit = 40) {
       where,
       orderBy: [{ totalSold: "desc" }, { avgRating: "desc" }],
       take: limit,
-      select: cardSelect,
+      select: CARD_SELECT,
     }),
     prisma.product.count({ where }),
   ]);

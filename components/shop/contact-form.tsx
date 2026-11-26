@@ -32,7 +32,7 @@ export function ContactForm() {
     return (
       <div className="rounded-lg border border-[color:var(--color-border)] bg-green-50 p-5 text-sm">
         <p className="font-medium text-green-800">Message sent</p>
-        <p className="mt-1 text-green-700">We'll get back to you within 24 hours.</p>
+        <p className="mt-1 text-green-700">We&apos;ll get back to you within 24 hours.</p>
       </div>
     );
   }

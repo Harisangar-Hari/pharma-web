@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireStaff } from "@/lib/auth-admin";
 import { prisma } from "@/lib/prisma";
 import { OrderStatusBadge } from "@/components/account/order-status-badge";
+import type { OrderStatus } from "@/prisma/generated/prisma/client";
 
 const STATUSES = [
   "ALL",
@@ -13,7 +14,9 @@ const STATUSES = [
   "DELIVERED",
   "CANCELLED",
   "RETURNED",
-];
+] as const;
+
+type StatusFilter = (typeof STATUSES)[number];
 
 export default async function AdminOrdersPage({
   searchParams,
@@ -22,10 +25,13 @@ export default async function AdminOrdersPage({
 }) {
   await requireStaff();
   const sp = await searchParams;
-  const status = sp.status ?? "ALL";
+
+  const requested = sp.status as StatusFilter | undefined;
+  const status: StatusFilter =
+    requested && STATUSES.includes(requested) ? requested : "ALL";
 
   const orders = await prisma.order.findMany({
-    where: status === "ALL" ? {} : { status: status as any },
+    where: status === "ALL" ? {} : { status: status as OrderStatus },
     orderBy: { createdAt: "desc" },
     include: {
       user: { select: { name: true, email: true } },
@@ -43,10 +49,11 @@ export default async function AdminOrdersPage({
           <Link
             key={s}
             href={`/admin/orders?status=${s}`}
-            className={`whitespace-nowrap rounded px-3 py-1.5 text-xs font-medium ${status === s
-              ? "bg-[color:var(--color-primary)] text-white"
-              : "text-[color:var(--color-muted)] hover:bg-[color:var(--color-surface)]"
-              }`}
+            className={`whitespace-nowrap rounded px-3 py-1.5 text-xs font-medium ${
+              status === s
+                ? "bg-[color:var(--color-primary)] text-white"
+                : "text-[color:var(--color-muted)] hover:bg-[color:var(--color-surface)]"
+            }`}
           >
             {s}
           </Link>

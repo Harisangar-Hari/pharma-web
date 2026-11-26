@@ -2,6 +2,10 @@ import Link from "next/link";
 import { requireStaff } from "@/lib/auth-admin";
 import { prisma } from "@/lib/prisma";
 import { PrescriptionReviewCard } from "@/components/admin/prescription-review-card";
+import type { PrescriptionStatus } from "@/prisma/generated/prisma/client";
+
+const TABS = ["PENDING", "APPROVED", "REJECTED", "ALL"] as const;
+type StatusFilter = (typeof TABS)[number];
 
 export default async function AdminPrescriptionsPage({
   searchParams,
@@ -10,19 +14,24 @@ export default async function AdminPrescriptionsPage({
 }) {
   await requireStaff();
   const sp = await searchParams;
-  const status = sp.status ?? "PENDING";
+
+  const requested = sp.status as StatusFilter | undefined;
+  const status: StatusFilter =
+    requested && TABS.includes(requested) ? requested : "PENDING";
 
   const prescriptions = await prisma.prescription.findMany({
-    where: status === "ALL" ? {} : { status: status as any },
+    where: status === "ALL" ? {} : { status: status as PrescriptionStatus },
     orderBy: { createdAt: "desc" },
     include: {
       user: { select: { name: true, email: true, phone: true } },
-      orders: { select: { id: true, orderNumber: true }, take: 1 },
+      orders: {
+        select: { id: true, orderNumber: true },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+      },
     },
     take: 100,
   });
-
-  const TABS = ["PENDING", "APPROVED", "REJECTED", "ALL"];
 
   return (
     <div className="space-y-4">
@@ -33,10 +42,11 @@ export default async function AdminPrescriptionsPage({
           <Link
             key={t}
             href={`/admin/prescriptions?status=${t}`}
-            className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium ${status === t
+            className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium ${
+              status === t
                 ? "border-[color:var(--color-primary)] text-[color:var(--color-primary)]"
                 : "border-transparent text-[color:var(--color-muted)] hover:text-[color:var(--color-foreground)]"
-              }`}
+            }`}
           >
             {t}
           </Link>

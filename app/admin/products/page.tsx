@@ -2,8 +2,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth-admin";
 import { prisma } from "@/lib/prisma";
 import { ProductRowActions } from "@/components/admin/product-row-actions";
-
-
+import { daysUntil } from "@/lib/expiry";
 
 export default async function AdminProductsPage({
   searchParams,
@@ -24,7 +23,6 @@ export default async function AdminProductsPage({
     take: 200,
   });
 
-  const now = Date.now();
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -66,11 +64,11 @@ export default async function AdminProductsPage({
               const price = Number(p.price);
               const margin = price > 0 ? ((price - cost) / price) * 100 : 0;
               const expiryDate = p.expiryDate;
-              const daysToExpiry = expiryDate
-                ? Math.floor((expiryDate.getTime() - now) / (1000 * 60 * 60 * 24))
-                : null;
+              const daysToExpiry = daysUntil(expiryDate);
               const expirySoon =
-                daysToExpiry !== null && daysToExpiry >= 0 && daysToExpiry < 90;
+                daysToExpiry !== null &&
+                daysToExpiry >= 0 &&
+                daysToExpiry < p.expiryAlertDays;
               const expired = daysToExpiry !== null && daysToExpiry < 0;
 
               return (
@@ -93,8 +91,9 @@ export default async function AdminProductsPage({
                     (Rs){Number(p.mrp).toFixed(0)}
                   </td>
                   <td
-                    className={`px-4 py-2 ${p.stock < 10 ? "font-semibold text-red-600" : ""
-                      }`}
+                    className={`px-4 py-2 ${
+                      p.stock < 10 ? "font-semibold text-red-600" : ""
+                    }`}
                   >
                     {p.stock}
                   </td>

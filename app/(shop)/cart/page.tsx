@@ -1,23 +1,22 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Trash2, ArrowRight, ShoppingBag } from "lucide-react";
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { QuantitySelector } from "@/components/shop/quantity-selector";
 import { useCartStore } from "@/stores/cart-store";
+import { useHydrated } from "@/lib/use-hydrated";
 
 export default function CartPage() {
-  const [mounted, setMounted] = useState(false);
+  const hydrated = useHydrated();
   const items = useCartStore((s) => s.items);
   const removeItem = useCartStore((s) => s.removeItem);
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const clearCart = useCartStore((s) => s.clearCart);
 
-  useEffect(() => setMounted(true), []);
-
   // Avoid hydration mismatch — Zustand persist reads localStorage on client only
-  if (!mounted) {
+  if (!hydrated) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-12">
         <h1 className="mb-6 text-2xl font-bold">Your Cart</h1>
@@ -48,7 +47,10 @@ export default function CartPage() {
     <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">
-          Your Cart <span className="text-sm font-normal text-[color:var(--color-muted)]">({itemCount} items)</span>
+          Your Cart{" "}
+          <span className="text-sm font-normal text-[color:var(--color-muted)]">
+            ({itemCount} items)
+          </span>
         </h1>
         <Button variant="ghost" size="sm" onClick={clearCart}>
           Clear cart
@@ -67,10 +69,12 @@ export default function CartPage() {
                 href={`/product/${item.slug}`}
                 className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md bg-[color:var(--color-surface)]"
               >
-                <img
+                <Image
                   src={item.image || "/placeholder.svg"}
                   alt={item.name}
-                  className="h-full w-full object-cover"
+                  fill
+                  sizes="80px"
+                  className="object-cover"
                 />
               </Link>
 
@@ -101,7 +105,7 @@ export default function CartPage() {
                   />
                   <div className="text-right">
                     <p className="text-sm font-bold">
-                      {(item.price * item.quantity).toFixed(0)}
+                      (Rs){(item.price * item.quantity).toFixed(0)}
                     </p>
                     <p className="text-xs text-[color:var(--color-muted)]">
                       {item.price.toFixed(0)} each

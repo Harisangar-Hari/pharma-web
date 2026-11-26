@@ -8,7 +8,7 @@ export default function ContactPage() {
         <div className="mx-auto max-w-4xl px-4 py-12">
             <h1 className="text-3xl font-bold">Contact us</h1>
             <p className="mt-2 text-[color:var(--color-muted)]">
-                Questions about an order, a product, or a prescription? We're here to help.
+                Questions about an order, a product, or a prescription? We&apos;re here to help.
             </p>
 
             <div className="mt-8 grid gap-8 md:grid-cols-2">

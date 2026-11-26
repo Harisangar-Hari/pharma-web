@@ -183,7 +183,7 @@ export function ProductForm({
           />
           {costInvalid && (
             <p className="mt-1 text-xs text-[color:var(--color-danger)]">
-              Cost price exceeds selling price — you'd be selling at a loss.
+              Cost price exceeds selling price — you&apos;d be selling at a loss.
             </p>
           )}
         </Field>

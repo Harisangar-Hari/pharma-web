@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated code and runtime uploads are not ours to lint.
+    "prisma/generated/**",
+    "public/uploads/**",
+    "private/**",
   ]),
 ]);
 

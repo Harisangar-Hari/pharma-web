@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 
 export function ProductGallery({ images, name }: { images: string[]; name: string }) {
@@ -9,13 +10,13 @@ export function ProductGallery({ images, name }: { images: string[]; name: strin
   return (
     <div className="space-y-3">
       <div className="relative aspect-square overflow-hidden rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-surface)]">
-        <img
+        <Image
           src={list[active]}
           alt={name}
-          className="h-full w-full object-cover"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).src = "/placeholder.svg";
-          }}
+          fill
+          priority
+          sizes="(min-width: 768px) 50vw, 100vw"
+          className="object-cover"
         />
       </div>
       {list.length > 1 && (
@@ -24,13 +25,20 @@ export function ProductGallery({ images, name }: { images: string[]; name: strin
             <button
               key={i}
               onClick={() => setActive(i)}
+              aria-label={`View image ${i + 1}`}
               className={`relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border-2 ${
                 i === active
                   ? "border-[color:var(--color-primary)]"
                   : "border-[color:var(--color-border)]"
               }`}
             >
-              <img src={img} alt="" className="h-full w-full object-cover" />
+              <Image
+                src={img}
+                alt=""
+                width={64}
+                height={64}
+                className="h-full w-full object-cover"
+              />
             </button>
           ))}
         </div>

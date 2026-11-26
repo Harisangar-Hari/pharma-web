@@ -1,9 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Image from "next/image";
 import { Upload, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { uploadProductImageAction } from "@/lib/actions/product-image";
 
 export function ImageUploader({
@@ -55,13 +55,12 @@ export function ImageUploader({
             key={i}
             className="group relative h-24 w-24 overflow-hidden rounded-md border border-[color:var(--color-border)] bg-[color:var(--color-surface)]"
           >
-            <img
+            <Image
               src={src}
               alt=""
+              width={96}
+              height={96}
               className="h-full w-full object-cover"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src = "/placeholder.svg";
-              }}
             />
             {i === 0 && (
               <span className="absolute left-1 top-1 rounded bg-[color:var(--color-primary)] px-1 py-0.5 text-[10px] font-medium text-white">

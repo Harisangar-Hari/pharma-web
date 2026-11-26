@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Star } from "lucide-react";
 import { AddToCartButton } from "./add-to-cart-button";
 import { WishlistButton } from "./wishlist-button";
@@ -34,11 +35,12 @@ export function ProductCard({
 
       <Link href={`/product/${product.slug}`} className="block">
         <div className="relative aspect-square bg-[color:var(--color-surface)]">
-          <img
+          <Image
             src={product.images[0] || "/placeholder.svg"}
             alt={product.name}
-            className="h-full w-full object-cover transition group-hover:scale-105"
-            loading="lazy"
+            fill
+            sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+            className="object-cover transition group-hover:scale-105"
           />
         </div>
       </Link>

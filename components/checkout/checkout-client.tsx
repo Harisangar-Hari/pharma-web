@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { AddressForm } from "./address-form";
 import { PrescriptionUpload } from "./prescription-upload";
 import { useCartStore } from "@/stores/cart-store";
+import { useHydrated } from "@/lib/use-hydrated";
 import { placeOrderAction } from "@/lib/actions/checkout";
 
 type Address = {
@@ -24,7 +25,7 @@ type Address = {
 type Rx = { id: string; fileUrl: string; status: string };
 
 export function CheckoutClient({
-  addresses: initialAddresses,
+  addresses,
   existingPrescriptions,
   rxProductIds,
 }: {
@@ -33,22 +34,25 @@ export function CheckoutClient({
   rxProductIds: string[];
 }) {
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
+  const hydrated = useHydrated();
   const items = useCartStore((s) => s.items);
   const clearCart = useCartStore((s) => s.clearCart);
 
-  const [addresses, setAddresses] = useState<Address[]>(initialAddresses);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
-    initialAddresses.find((a) => a.isDefault)?.id ?? initialAddresses[0]?.id ?? null
+    addresses.find((a) => a.isDefault)?.id ?? addresses[0]?.id ?? null
   );
-  const [showAddressForm, setShowAddressForm] = useState(initialAddresses.length === 0);
+  const [showAddressForm, setShowAddressForm] = useState(addresses.length === 0);
 
   const [prescriptionId, setPrescriptionId] = useState<string | null>(
     existingPrescriptions[0]?.id ?? null
   );
   const [placing, setPlacing] = useState(false);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    if (hydrated && items.length === 0) {
+      router.replace("/cart");
+    }
+  }, [hydrated, items.length, router]);
 
   const rxSet = useMemo(() => new Set(rxProductIds), [rxProductIds]);
   const needsRx = items.some((i) => rxSet.has(i.productId));
@@ -57,12 +61,11 @@ export function CheckoutClient({
   const shipping = subtotal >= 499 ? 0 : 49;
   const total = subtotal + shipping;
 
-  if (!mounted) {
+  if (!hydrated) {
     return <div className="h-64 animate-pulse rounded-lg bg-[color:var(--color-surface)]" />;
   }
 
   if (items.length === 0) {
-    router.replace("/cart");
     return null;
   }
 
@@ -106,10 +109,11 @@ export function CheckoutClient({
               {addresses.map((a) => (
                 <label
                   key={a.id}
-                  className={`block cursor-pointer rounded-lg border p-3 text-sm ${selectedAddressId === a.id
-                    ? "border-[color:var(--color-primary)] bg-teal-50/40"
-                    : "border-[color:var(--color-border)]"
-                    }`}
+                  className={`block cursor-pointer rounded-lg border p-3 text-sm ${
+                    selectedAddressId === a.id
+                      ? "border-[color:var(--color-primary)] bg-teal-50/40"
+                      : "border-[color:var(--color-border)]"
+                  }`}
                 >
                   <input
                     type="radio"
@@ -118,10 +122,8 @@ export function CheckoutClient({
                     checked={selectedAddressId === a.id}
                     onChange={() => setSelectedAddressId(a.id)}
                   />
-                  <span className="font-medium">
-                    {a.label || "Address"}
-                  </span>{" "}
-                  — {a.line1}
+                  <span className="font-medium">{a.label || "Address"}</span> —{" "}
+                  {a.line1}
                   {a.line2 ? `, ${a.line2}` : ""}, {a.city}, {a.state} {a.pincode}
                   <span className="ml-2 text-xs text-[color:var(--color-muted)]">
                     ({a.phone})
@@ -136,23 +138,8 @@ export function CheckoutClient({
               onSaved={(id) => {
                 setShowAddressForm(false);
                 setSelectedAddressId(id);
-                // Refresh list — simplest: reload the page server data by router.refresh
+                // Pull the saved address from the server without losing state.
                 router.refresh();
-                // Optimistic local add
-                setAddresses((prev) => [
-                  ...prev,
-                  {
-                    id,
-                    label: null,
-                    line1: "",
-                    line2: null,
-                    city: "",
-                    state: "",
-                    pincode: "",
-                    phone: "",
-                    isDefault: false,
-                  },
-                ]);
               }}
               onCancel={addresses.length > 0 ? () => setShowAddressForm(false) : undefined}
             />
@@ -172,24 +159,31 @@ export function CheckoutClient({
         {needsRx && (
           <section>
             <h2 className="mb-3 text-lg font-semibold">Prescription</h2>
-            {existingPrescriptions.length > 0 && !prescriptionId ? (
+
+            {existingPrescriptions.length > 0 && (
               <div className="mb-3 space-y-2">
                 {existingPrescriptions.map((p) => (
                   <label
                     key={p.id}
-                    className="block cursor-pointer rounded-lg border border-[color:var(--color-border)] p-3 text-sm"
+                    className={`block cursor-pointer rounded-lg border p-3 text-sm ${
+                      prescriptionId === p.id
+                        ? "border-[color:var(--color-primary)] bg-teal-50/40"
+                        : "border-[color:var(--color-border)]"
+                    }`}
                   >
                     <input
                       type="radio"
                       name="rx"
                       className="mr-2"
+                      checked={prescriptionId === p.id}
                       onChange={() => setPrescriptionId(p.id)}
                     />
                     Use existing prescription · {p.status}
                   </label>
                 ))}
               </div>
-            ) : null}
+            )}
+
             <PrescriptionUpload
               prescriptionId={prescriptionId}
               onChange={setPrescriptionId}
@@ -208,7 +202,9 @@ export function CheckoutClient({
               <span className="line-clamp-1">
                 {i.name} × {i.quantity}
               </span>
-              <span className="whitespace-nowrap">(Rs){(i.price * i.quantity).toFixed(0)}</span>
+              <span className="whitespace-nowrap">
+                (Rs){(i.price * i.quantity).toFixed(0)}
+              </span>
             </li>
           ))}
         </ul>

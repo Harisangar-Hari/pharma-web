@@ -1,72 +1,66 @@
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { serializeProduct } from "@/lib/serialize";
+import { CARD_SELECT } from "@/lib/product-select";
 
-const cardSelect = {
-  id: true,
-  name: true,
-  slug: true,
-  price: true,
-  mrp: true,
-  images: true,
-  stock: true,
-  requiresPrescription: true,
-  avgRating: true,
-  reviewCount: true,
-} as const;
+export const getNewArrivals = unstable_cache(
+  async (limit = 8) => {
+    const rows = await prisma.product.findMany({
+      where: { isActive: true },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      select: CARD_SELECT,
+    });
+    return rows.map(serializeProduct);
+  },
+  ["new-arrivals"],
+  { revalidate: 60, tags: ["products"] }
+);
 
-type RawCard = {
-  id: string;
-  name: string;
-  slug: string;
-  price: unknown;
-  mrp: unknown;
-  images: string[];
-  stock: number;
-  requiresPrescription: boolean;
-  avgRating: number;
-  reviewCount: number;
-};
+export const getBestSelling = unstable_cache(
+  async (limit = 8) => {
+    const rows = await prisma.product.findMany({
+      where: { isActive: true },
+      orderBy: { totalSold: "desc" },
+      take: limit,
+      select: CARD_SELECT,
+    });
+    return rows.map(serializeProduct);
+  },
+  ["best-selling"],
+  { revalidate: 60, tags: ["products"] }
+);
 
-function serialize(p: RawCard) {
-  return {
-    ...p,
-    price: Number(p.price),
-    mrp: Number(p.mrp),
-  };
-}
+export const getTopRated = unstable_cache(
+  async (limit = 8) => {
+    const rows = await prisma.product.findMany({
+      where: { isActive: true },
+      orderBy: [{ avgRating: "desc" }, { reviewCount: "desc" }],
+      take: limit,
+      select: CARD_SELECT,
+    });
+    return rows.map(serializeProduct);
+  },
+  ["top-rated"],
+  { revalidate: 60, tags: ["products"] }
+);
 
-export async function getNewArrivals(limit = 8) {
-  const rows = await prisma.product.findMany({
-    where: { isActive: true },
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    select: cardSelect,
-  });
-  return rows.map(serialize);
-}
+export const getCategoryBySlug = unstable_cache(
+  async (slug: string) =>
+    prisma.category.findUnique({
+      where: { slug },
+      select: { id: true, name: true, slug: true, description: true, image: true },
+    }),
+  ["category-by-slug"],
+  { revalidate: 300, tags: ["categories"] }
+);
 
-export async function getBestSelling(limit = 8) {
-  const rows = await prisma.product.findMany({
-    where: { isActive: true },
-    orderBy: { totalSold: "desc" },
-    take: limit,
-    select: cardSelect,
-  });
-  return rows.map(serialize);
-}
-
-export async function getTopRated(limit = 8) {
-  const rows = await prisma.product.findMany({
-    where: { isActive: true },
-    orderBy: [{ avgRating: "desc" }, { reviewCount: "desc" }],
-    take: limit,
-    select: cardSelect,
-  });
-  return rows.map(serialize);
-}
-
-export async function getCategories() {
-  return prisma.category.findMany({
-    orderBy: { sortOrder: "asc" },
-    select: { id: true, name: true, slug: true, image: true, description: true },
-  });
-}
+export const getCategories = unstable_cache(
+  async () =>
+    prisma.category.findMany({
+      orderBy: { sortOrder: "asc" },
+      select: { id: true, name: true, slug: true, image: true, description: true },
+    }),
+  ["categories"],
+  { revalidate: 300, tags: ["categories"] }
+);

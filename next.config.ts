@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-
   images: {
     remotePatterns: [
       {
@@ -16,9 +15,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  /* config options here */
   experimental: {
     agentFeedback: true,
+    // Uploads accept files up to 5 MB; Server Actions default to 1 MB.
+    serverActions: {
+      bodySizeLimit: "8mb",
+    },
   },
   cacheComponents: false,
   partialPrefetching: false,

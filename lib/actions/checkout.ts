@@ -1,7 +1,6 @@
 "use server";
 
-import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { addressSchema, type AddressInput } from "@/lib/validators/checkout";
@@ -20,7 +19,15 @@ type PlaceOrderResult =
   | { success: true; orderId: string }
   | { success: false; error: string };
 
-const SHORT_DATED_DAYS = 90;
+class OutOfStockError extends Error {}
+
+function isUniqueViolation(e: unknown) {
+  return (
+    typeof e === "object" &&
+    e !== null &&
+    (e as { code?: unknown }).code === "P2002"
+  );
+}
 
 export async function saveAddressAction(
   input: AddressInput
@@ -48,6 +55,7 @@ export async function saveAddressAction(
     },
   });
 
+  revalidatePath("/account/addresses");
   return { success: true, addressId: address.id };
 }
 
@@ -97,7 +105,6 @@ export async function placeOrderAction(
       return { success: false, error: "Product not found" };
     }
 
-    // Stock check
     if (product.stock < line.quantity) {
       return {
         success: false,
@@ -105,10 +112,9 @@ export async function placeOrderAction(
       };
     }
 
-    // Expiry check
     if (product.expiryDate) {
       const daysLeft = Math.floor(
-        (product.expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+        (product.expiryDate.getTime() - Date.now()) / 86_400_000
       );
       if (daysLeft < 0) {
         return {
@@ -116,7 +122,9 @@ export async function placeOrderAction(
           error: `${product.name} has expired and cannot be ordered.`,
         };
       }
-      if (daysLeft < SHORT_DATED_DAYS) {
+      // Per-product warning window (defaults to 90 days in the schema).
+      const alertDays = product.expiryAlertDays || 90;
+      if (daysLeft < alertDays) {
         return {
           success: false,
           error: `${product.name} is expiring soon (${daysLeft} days left) and cannot be shipped. Please contact us.`,
@@ -157,41 +165,70 @@ export async function placeOrderAction(
   const tax = 0; // pharmacy GST handled at invoice stage; leave 0 for now
   const total = subtotal + shipping + tax;
 
-  // 6. Create order + items + decrement stock + bump totalSold, in a transaction
-  const order = await prisma.$transaction(async (tx) => {
-    const created = await tx.order.create({
-      data: {
-        orderNumber: generateOrderNumber(),
-        userId: session.id,
-        addressId: address.id,
-        prescriptionId: hasRx ? input.prescriptionId : null,
-        status: hasRx ? "PENDING_APPROVAL" : "PENDING",
-        paymentStatus: "UNPAID",
-        subtotal,
-        discount: 0,
-        tax,
-        shipping,
-        total,
-        notes: input.notes || null,
-        items: {
-          create: orderItemsData,
-        },
-      },
-    });
+  // 6. Create the order, decrement stock atomically and bump totalSold.
+  //    Retries when the random order number collides with an existing one.
+  let orderId: string | null = null;
 
-    for (const line of input.items) {
-      await tx.product.update({
-        where: { id: line.productId },
-        data: {
-          stock: { decrement: line.quantity },
-          totalSold: { increment: line.quantity },
-        },
+  for (let attempt = 0; attempt < 3 && !orderId; attempt++) {
+    try {
+      const created = await prisma.$transaction(async (tx) => {
+        for (const line of input.items) {
+          const product = productMap.get(line.productId)!;
+          const result = await tx.product.updateMany({
+            where: { id: line.productId, stock: { gte: line.quantity } },
+            data: {
+              stock: { decrement: line.quantity },
+              totalSold: { increment: line.quantity },
+            },
+          });
+          if (result.count === 0) {
+            throw new OutOfStockError(
+              `Not enough stock for ${product.name}. Please update your cart.`
+            );
+          }
+        }
+
+        return tx.order.create({
+          data: {
+            orderNumber: generateOrderNumber(),
+            userId: session.id,
+            addressId: address.id,
+            prescriptionId: hasRx ? input.prescriptionId : null,
+            status: hasRx ? "PENDING_APPROVAL" : "PENDING",
+            paymentStatus: "UNPAID",
+            paymentMethod: "COD",
+            subtotal,
+            discount: 0,
+            tax,
+            shipping,
+            total,
+            notes: input.notes || null,
+            items: {
+              create: orderItemsData,
+            },
+          },
+        });
       });
-    }
 
-    return created;
-  });
+      orderId = created.id;
+    } catch (e) {
+      if (e instanceof OutOfStockError) {
+        return { success: false, error: e.message };
+      }
+      if (isUniqueViolation(e)) continue;
+      throw e;
+    }
+  }
+
+  if (!orderId) {
+    return {
+      success: false,
+      error: "Could not place the order right now. Please try again.",
+    };
+  }
 
   revalidatePath("/account/orders");
-  return { success: true, orderId: order.id };
+  revalidatePath("/admin/orders");
+  revalidateTag("products", "max");
+  return { success: true, orderId };
 }

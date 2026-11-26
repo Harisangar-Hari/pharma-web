@@ -1,11 +1,19 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireStaff, requireAdmin } from "@/lib/auth-admin";
 import { productSchema, type ProductInput } from "@/lib/validators/admin";
 import { ORDER_TRANSITIONS } from "@/lib/order-transitions";
 import type { OrderStatus } from "@/prisma/generated/prisma/client";
+
+function isUniqueViolation(e: unknown) {
+  return (
+    typeof e === "object" &&
+    e !== null &&
+    (e as { code?: unknown }).code === "P2002"
+  );
+}
 
 export async function approvePrescriptionAction(
   prescriptionId: string
@@ -33,6 +41,7 @@ export async function approvePrescriptionAction(
 
   revalidatePath("/admin/prescriptions");
   revalidatePath("/admin/orders");
+  revalidatePath("/account/orders");
   return { success: true };
 }
 
@@ -66,6 +75,7 @@ export async function rejectPrescriptionAction(
 
   revalidatePath("/admin/prescriptions");
   revalidatePath("/admin/orders");
+  revalidatePath("/account/orders");
   return { success: true };
 }
 
@@ -86,7 +96,33 @@ export async function updateOrderStatusAction(
     };
   }
 
+  // Never confirm a prescription order before the pharmacist has approved it.
+  if (newStatus === "CONFIRMED" && order.prescriptionId) {
+    const rx = await prisma.prescription.findUnique({
+      where: { id: order.prescriptionId },
+      select: { status: true },
+    });
+    if (!rx || rx.status !== "APPROVED") {
+      return {
+        success: false,
+        error: "Approve the prescription before confirming this order.",
+      };
+    }
+  }
+
   const statusEnum = newStatus as OrderStatus;
+  const data: { status: OrderStatus; paymentStatus?: "PAID" } = {
+    status: statusEnum,
+  };
+
+  // Cash on delivery: collecting on delivery marks the order paid.
+  if (
+    newStatus === "DELIVERED" &&
+    order.paymentMethod === "COD" &&
+    order.paymentStatus === "UNPAID"
+  ) {
+    data.paymentStatus = "PAID";
+  }
 
   if (newStatus === "CANCELLED") {
     const items = await prisma.orderItem.findMany({ where: { orderId } });
@@ -102,18 +138,21 @@ export async function updateOrderStatusAction(
       }
       await tx.order.update({
         where: { id: orderId },
-        data: { status: statusEnum },
+        data,
       });
     });
+    revalidateTag("products", "max");
   } else {
     await prisma.order.update({
       where: { id: orderId },
-      data: { status: statusEnum },
+      data,
     });
   }
 
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${orderId}`);
+  revalidatePath("/account/orders");
+  revalidatePath(`/account/orders/${orderId}`);
   return { success: true };
 }
 
@@ -156,9 +195,11 @@ export async function createProductAction(
     });
     revalidatePath("/admin/products");
     revalidatePath("/shop");
+    revalidatePath("/");
+    revalidateTag("products", "max");
     return { success: true, productId: product.id };
-  } catch (e: any) {
-    if (e.code === "P2002")
+  } catch (e: unknown) {
+    if (isUniqueViolation(e))
       return { success: false, error: "Slug or SKU already exists" };
     return { success: false, error: "Failed to create product" };
   }
@@ -203,9 +244,12 @@ export async function updateProductAction(
     });
     revalidatePath("/admin/products");
     revalidatePath("/shop");
+    revalidatePath("/");
+    revalidatePath(`/product/${parsed.data.slug}`);
+    revalidateTag("products", "max");
     return { success: true };
-  } catch (e: any) {
-    if (e.code === "P2002")
+  } catch (e: unknown) {
+    if (isUniqueViolation(e))
       return { success: false, error: "Slug or SKU already exists" };
     return { success: false, error: "Failed to update product" };
   }
@@ -225,5 +269,7 @@ export async function toggleProductActiveAction(
   });
   revalidatePath("/admin/products");
   revalidatePath("/shop");
+  revalidatePath("/");
+  revalidateTag("products", "max");
   return { success: true };
 }

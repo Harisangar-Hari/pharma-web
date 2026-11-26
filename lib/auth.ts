@@ -1,9 +1,17 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import { cacheLife } from "next/cache";
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 
-const SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
+const rawSecret = process.env.JWT_SECRET;
+
+if (!rawSecret || rawSecret.length < 32) {
+  throw new Error(
+    "JWT_SECRET is missing or shorter than 32 characters. Add a long random value to .env."
+  );
+}
+
+const SECRET = new TextEncoder().encode(rawSecret);
 const COOKIE_NAME = "auth_token";
 const MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 
@@ -36,9 +44,11 @@ export async function destroySession() {
   store.delete(COOKIE_NAME);
 }
 
-export async function getSession(): Promise<SessionUser | null> {
-
-
+/**
+ * Cached per request: layouts, pages and actions can call this freely
+ * without re-reading the cookie or re-verifying the JWT each time.
+ */
+export const getSession = cache(async (): Promise<SessionUser | null> => {
   const store = await cookies();
   const token = store.get(COOKIE_NAME)?.value;
   if (!token) return null;
@@ -54,9 +64,9 @@ export async function getSession(): Promise<SessionUser | null> {
   } catch {
     return null;
   }
-}
+});
 
-export async function getCurrentUser() {
+export const getCurrentUser = cache(async () => {
   const session = await getSession();
   if (!session) return null;
   return prisma.user.findUnique({
@@ -70,4 +80,4 @@ export async function getCurrentUser() {
       createdAt: true,
     },
   });
-}
+});

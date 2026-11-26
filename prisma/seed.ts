@@ -1,5 +1,6 @@
 import { PrismaClient } from "../prisma/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import bcrypt from "bcryptjs";
 import "dotenv/config";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
@@ -85,6 +86,26 @@ async function main() {
   await prisma.category.deleteMany();
   await prisma.address.deleteMany();
   await prisma.user.deleteMany();
+
+  // Optional staff account: set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD to create one.
+  const adminEmail = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+  if (adminEmail && adminPassword && adminPassword.length >= 8) {
+    await prisma.user.create({
+      data: {
+        email: adminEmail,
+        name: "Store Admin",
+        passwordHash: await bcrypt.hash(adminPassword, 10),
+        role: "ADMIN",
+        emailVerified: new Date(),
+      },
+    });
+    console.log(`Created admin user ${adminEmail}`);
+  } else {
+    console.log(
+      "No admin user created. Set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD to add one."
+    );
+  }
 
   const categories = await Promise.all(
     CATEGORIES.map((c) =>

@@ -12,6 +12,10 @@ export type CartItem = {
 
 export type CartItemInput = Omit<CartItem, "quantity">;
 
+const MAX_QTY = 10;
+
+const clampQty = (n: number) => Math.min(MAX_QTY, Math.max(1, n));
+
 type CartStore = {
   items: CartItem[];
   addItem: (item: CartItemInput, quantity?: number) => void;
@@ -31,12 +35,12 @@ export const useCartStore = create<CartStore>()(
             return {
               items: state.items.map((i) =>
                 i.productId === item.productId
-                  ? { ...i, quantity: i.quantity + quantity }
+                  ? { ...i, quantity: clampQty(i.quantity + quantity) }
                   : i
               ),
             };
           }
-          return { items: [...state.items, { ...item, quantity }] };
+          return { items: [...state.items, { ...item, quantity: clampQty(quantity) }] };
         }),
       removeItem: (productId) =>
         set((state) => ({
@@ -45,7 +49,7 @@ export const useCartStore = create<CartStore>()(
       updateQuantity: (productId, quantity) =>
         set((state) => ({
           items: state.items.map((i) =>
-            i.productId === productId ? { ...i, quantity: Math.max(1, quantity) } : i
+            i.productId === productId ? { ...i, quantity: clampQty(quantity) } : i
           ),
         })),
       clearCart: () => set({ items: [] }),

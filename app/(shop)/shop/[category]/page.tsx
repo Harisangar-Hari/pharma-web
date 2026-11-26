@@ -6,7 +6,7 @@ import { ProductCard } from "@/components/shop/product-card";
 import { getFilterOptions, getShopProducts } from "@/lib/shop";
 import { parseShopParams } from "@/lib/shop-params";
 import { getSavedProductIds } from "@/lib/wishlist";
-import { prisma } from "@/lib/prisma";
+import { getCategoryBySlug } from "@/lib/products";
 import { Metadata } from "next";
 
 
@@ -16,7 +16,7 @@ export async function generateMetadata({
   params: Promise<{ category: string }>;
 }): Promise<Metadata> {
   const { category: slug } = await params;
-  const category = await prisma.category.findUnique({ where: { slug } });
+  const category = await getCategoryBySlug(slug);
   if (!category) return { title: "Category Not Found" };
   return {
     title: category.name,
@@ -37,9 +37,7 @@ export default async function CategoryPage({
   const { category: categorySlug } = await params;
   const sp = await searchParams;
 
-  const category = await prisma.category.findUnique({
-    where: { slug: categorySlug },
-  });
+  const category = await getCategoryBySlug(categorySlug);
   if (!category) notFound();
 
   const filters = parseShopParams(sp);

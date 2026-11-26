@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { QuantitySelector } from "./quantity-selector";
 import { WishlistButton } from "./wishlist-button";
 import { useCartStore } from "@/stores/cart-store";
+import { daysUntil } from "@/lib/expiry";
 
 export function ProductBuyBox({
   product,
@@ -21,6 +22,7 @@ export function ProductBuyBox({
     images: string[];
     requiresPrescription: boolean;
     expiryDate: Date | string | null;
+    expiryAlertDays?: number;
   };
   isSaved: boolean;
 }) {
@@ -30,28 +32,19 @@ export function ProductBuyBox({
   const outOfStock = product.stock <= 0;
   const lowStock = product.stock > 0 && product.stock <= 10;
 
-  const expiryBadge = (() => {
-    if (!product.expiryDate) return null;
-    const exp = new Date(product.expiryDate);
-    const daysLeft = Math.floor(
-      (exp.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-    );
-    if (daysLeft < 0) {
-      return (
-        <span className="text-sm font-medium text-[color:var(--color-danger)]">
-          Expired — do not use
-        </span>
-      );
-    }
-    if (daysLeft < 180) {
-      return (
-        <span className="text-sm font-medium text-[color:var(--color-warning)]">
-          Expires in {daysLeft} days
-        </span>
-      );
-    }
-    return null;
-  })();
+  const daysLeft = daysUntil(product.expiryDate);
+  const alertDays = product.expiryAlertDays ?? 90;
+
+  const expiryBadge =
+    daysLeft === null ? null : daysLeft < 0 ? (
+      <span className="text-sm font-medium text-[color:var(--color-danger)]">
+        Expired — do not use
+      </span>
+    ) : daysLeft < alertDays ? (
+      <span className="text-sm font-medium text-[color:var(--color-warning)]">
+        Expires in {daysLeft} days
+      </span>
+    ) : null;
 
   return (
     <div className="space-y-4">
@@ -59,8 +52,8 @@ export function ProductBuyBox({
         <div className="flex items-start gap-2 rounded-md border border-[color:var(--color-warning)] bg-yellow-50 p-3 text-sm">
           <ShieldCheck className="mt-0.5 h-4 w-4 text-[color:var(--color-warning)]" />
           <p>
-            <strong>Prescription required.</strong> You'll need to upload a valid
-            prescription during checkout before this item can be shipped.
+            <strong>Prescription required.</strong> You&apos;ll need to upload a
+            valid prescription during checkout before this item can be shipped.
           </p>
         </div>
       )}

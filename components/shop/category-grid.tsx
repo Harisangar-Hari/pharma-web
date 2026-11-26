@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Stagger } from "@/components/animations/stagger";
 
 type Category = {
@@ -21,11 +22,12 @@ export function CategoryGrid({ categories }: { categories: Category[] }) {
             className="group overflow-hidden rounded-lg border border-[color:var(--color-border)] bg-white transition hover:shadow-md"
           >
             <div className="relative aspect-square bg-[color:var(--color-surface)]">
-              <img
+              <Image
                 src={c.image || "/placeholder.svg"}
                 alt={c.name}
-                className="h-full w-full object-cover transition group-hover:scale-105"
-                loading="lazy"
+                fill
+                sizes="(min-width: 1024px) 14vw, (min-width: 768px) 25vw, 50vw"
+                className="object-cover transition group-hover:scale-105"
               />
             </div>
             <div className="p-2 text-center">

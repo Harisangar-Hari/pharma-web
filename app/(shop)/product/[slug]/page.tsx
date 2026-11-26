@@ -8,7 +8,6 @@ import { ProductReviews } from "@/components/shop/product-reviews";
 import { ProductSection } from "@/components/shop/product-section";
 import { ReviewForm } from "@/components/shop/review-form";
 import { getProductBySlug, getRelatedProducts } from "@/lib/product-detail";
-import { getSession } from "@/lib/auth";
 import { canReviewProduct } from "@/lib/actions/review";
 import { getSavedProductIds } from "@/lib/wishlist";
 
@@ -49,8 +48,6 @@ export default async function ProductPage({
   const { slug } = await params;
   const product = await getProductBySlug(slug);
   if (!product) notFound();
-
-  const session = await getSession();
 
   const [related, savedIds, userCanReview] = await Promise.all([
     getRelatedProducts(product.id, product.categoryId),
@@ -197,6 +194,7 @@ export default async function ProductPage({
                 images: product.images,
                 requiresPrescription: product.requiresPrescription,
                 expiryDate: product.expiryDate,
+                expiryAlertDays: product.expiryAlertDays,
               }}
               isSaved={isSaved}
             />

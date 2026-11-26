@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Menu,
   Search,
@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCartStore } from "@/stores/cart-store";
 import { logoutAction } from "@/lib/actions/auth";
+import { useHydrated } from "@/lib/use-hydrated";
 import type { SessionUser } from "@/lib/auth";
 
 const CATEGORIES = [
@@ -31,12 +32,10 @@ const CATEGORIES = [
 
 export function Navbar({ user }: { user: SessionUser | null }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const hydrated = useHydrated();
   const itemCount = useCartStore((s) =>
     s.items.reduce((sum, i) => sum + i.quantity, 0)
   );
-
-  useEffect(() => setMounted(true), []);
 
   return (
     <header className="sticky top-0 z-40 border-b border-[color:var(--color-border)] bg-white/95 backdrop-blur">
@@ -159,7 +158,7 @@ export function Navbar({ user }: { user: SessionUser | null }) {
             <Button variant="ghost" size="icon">
               <ShoppingCart className="h-5 w-5" />
             </Button>
-            {mounted && itemCount > 0 && (
+            {hydrated && itemCount > 0 && (
               <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[color:var(--color-danger)] px-1 text-[10px] font-bold text-white">
                 {itemCount > 99 ? "99+" : itemCount}
               </span>
@@ -239,10 +238,12 @@ export function Navbar({ user }: { user: SessionUser | null }) {
                 >
                   My Orders
                 </Link>
-                <Link href="/wishlist" aria-label="Wishlist" className="hidden md:block">
-                  <Button variant="ghost" size="icon">
-                    <Heart className="h-5 w-5" />
-                  </Button>
+                <Link
+                  href="/wishlist"
+                  className="rounded-md px-2 py-2 text-sm hover:bg-[color:var(--color-surface)]"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  My Wishlist
                 </Link>
                 <Link
                   href="/account/prescriptions"

@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
@@ -26,7 +26,13 @@ export async function submitReviewAction(input: {
 
   const { productId, rating, title, body } = parsed.data;
 
-  // Must have ordered this product to review it
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    select: { slug: true },
+  });
+  if (!product) return { success: false, error: "Product not found" };
+
+  // A purchase makes the review "verified"; anyone signed in may review once.
   const purchased = await prisma.orderItem.findFirst({
     where: {
       productId,
@@ -42,33 +48,36 @@ export async function submitReviewAction(input: {
     return { success: false, error: "You've already reviewed this product" };
   }
 
-  await prisma.review.create({
-    data: {
-      productId,
-      userId: session.id,
-      rating,
-      title: title || null,
-      body,
-      isVerified: Boolean(purchased),
-    },
+  await prisma.$transaction(async (tx) => {
+    await tx.review.create({
+      data: {
+        productId,
+        userId: session.id,
+        rating,
+        title: title || null,
+        body,
+        isVerified: Boolean(purchased),
+      },
+    });
+
+    // Recompute product aggregates in the same transaction.
+    const agg = await tx.review.aggregate({
+      where: { productId },
+      _avg: { rating: true },
+      _count: true,
+    });
+
+    await tx.product.update({
+      where: { id: productId },
+      data: {
+        avgRating: agg._avg.rating ?? 0,
+        reviewCount: agg._count,
+      },
+    });
   });
 
-  // Recompute product aggregates
-  const agg = await prisma.review.aggregate({
-    where: { productId },
-    _avg: { rating: true },
-    _count: true,
-  });
-
-  await prisma.product.update({
-    where: { id: productId },
-    data: {
-      avgRating: agg._avg.rating ?? 0,
-      reviewCount: agg._count,
-    },
-  });
-
-  revalidatePath(`/product`);
+  revalidatePath(`/product/${product.slug}`);
+  revalidateTag("products", "max");
   return { success: true };
 }
 
